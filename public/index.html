@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Hoard - A free online multiplayer card game that ends your friendships. Play with 2-8 players!">
+  <title>HOARD - The Card Game</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Toast Notifications -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       LOBBY SCREEN
+       ═══════════════════════════════════════════════════════ -->
+  <div id="lobby-screen" class="screen active">
+    <div class="logo-container">
+      <h1 class="logo-title">HOARD</h1>
+      <p class="logo-tagline">A card game that ends your friendships</p>
+    </div>
+
+    <div class="lobby-panel">
+      <h2>Enter the Arena</h2>
+      <div class="input-group">
+        <input type="text" id="player-name" class="input-field" placeholder="Your Name" maxlength="16" autocomplete="off">
+      </div>
+      <div class="btn-row">
+        <button id="btn-create" class="btn btn-primary" onclick="createRoom()">Create Room</button>
+      </div>
+      <div class="divider">or join a room</div>
+      <div class="input-group">
+        <input type="text" id="room-code-input" class="input-field" placeholder="Room Code" maxlength="6" style="text-transform:uppercase" autocomplete="off">
+        <button id="btn-join-code" class="btn btn-secondary" onclick="joinByCode()">Join by Code</button>
+      </div>
+      <div class="divider">open rooms</div>
+      <div class="room-list" id="room-list">
+        <div class="no-rooms">No rooms available yet</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       WAITING ROOM SCREEN
+       ═══════════════════════════════════════════════════════ -->
+  <div id="room-screen" class="screen">
+    <div class="room-header">
+      <h2>Waiting Room</h2>
+      <div class="room-code" id="display-room-code" title="Click to copy" onclick="copyRoomCode()">------</div>
+      <p style="color:var(--text-muted);font-size:0.85rem;margin-top:8px">Share this code with friends!</p>
+    </div>
+
+    <div class="player-list-room" id="player-list-room"></div>
+
+    <div class="btn-row" style="max-width:400px;width:100%">
+      <button id="btn-start" class="btn btn-gold hidden" onclick="startGame()">Start Game</button>
+      <button class="btn btn-danger" onclick="leaveRoom()">Leave</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       GAME SCREEN
+       ═══════════════════════════════════════════════════════ -->
+  <div id="game-screen" class="screen">
+    <div class="game-layout">
+      <!-- Top Bar -->
+      <div class="game-top-bar">
+        <div class="game-title">HOARD</div>
+        <div class="turn-info">
+          Turn: <span class="current-turn-name" id="turn-name">---</span>
+          <span id="your-turn-label" class="hidden" style="color:var(--basic);margin-left:8px">⭐ YOUR TURN</span>
+        </div>
+        <div class="round-info">Round <span id="round-num">1</span> · Deck: <span id="deck-count">0</span></div>
+      </div>
+
+      <!-- Main Play Area -->
+      <div class="play-area">
+        <!-- Status Effects -->
+        <div class="status-bar" id="status-bar"></div>
+
+        <!-- Frenzy Banner -->
+        <div class="frenzy-banner" id="frenzy-banner">
+          <span class="frenzy-text">🔥 FRENZY MODE — <span id="frenzy-plays">3</span> plays remaining</span>
+          <button class="btn btn-secondary" style="margin-left:12px;padding:6px 14px;font-size:0.8rem" onclick="endFrenzy()">End Frenzy</button>
+        </div>
+
+        <!-- Other Players -->
+        <div class="other-players" id="other-players"></div>
+
+        <!-- Table Center (Deck + Discard) -->
+        <div class="table-center">
+          <div class="deck-pile">
+            <div class="card-stack deck-visual" id="deck-visual">
+              <span id="deck-count-visual">52</span>
+            </div>
+            <span class="pile-label">Deck</span>
+          </div>
+          <div class="discard-pile">
+            <div class="card-stack discard-visual" id="discard-visual"></div>
+            <span class="pile-label">Last Played</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Player Hand -->
+      <div class="hand-area">
+        <div class="hand-header">
+          <h3>Your Hand</h3>
+          <span class="hand-count" id="hand-count">0 cards</span>
+        </div>
+        <div class="hand-cards" id="hand-cards"></div>
+      </div>
+
+      <!-- Sidebar -->
+      <div class="sidebar">
+        <div class="sidebar-tabs">
+          <div class="sidebar-tab active" onclick="switchTab('log')">Game Log</div>
+          <div class="sidebar-tab" onclick="switchTab('chat')">Chat</div>
+        </div>
+        <div class="sidebar-content">
+          <div class="log-panel active" id="log-panel"></div>
+          <div class="chat-panel" id="chat-panel">
+            <div class="chat-messages" id="chat-messages"></div>
+          </div>
+        </div>
+        <div class="chat-input-row">
+          <input type="text" id="chat-input" class="input-field" placeholder="Type a message..." onkeydown="if(event.key==='Enter')sendChat()">
+          <button class="btn btn-primary" onclick="sendChat()">Send</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       GAME OVER OVERLAY
+       ═══════════════════════════════════════════════════════ -->
+  <div class="game-over-overlay" id="game-over-overlay">
+    <div class="game-over-title">GAME OVER</div>
+    <div class="game-over-winner" id="game-over-winner">--- wins!</div>
+    <div class="btn-row">
+      <button class="btn btn-gold" onclick="requestRestart()">Play Again</button>
+      <button class="btn btn-secondary" onclick="backToLobby()">Back to Lobby</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       MODAL: Target Player Selection
+       ═══════════════════════════════════════════════════════ -->
+  <div class="modal-overlay" id="modal-target">
+    <div class="modal">
+      <h3 id="modal-target-title">Choose a Player</h3>
+      <p id="modal-target-desc">Select a player to target.</p>
+      <div class="modal-players" id="modal-target-players"></div>
+      <div class="modal-btns">
+        <button class="btn btn-secondary" onclick="closeModal('modal-target')">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       MODAL: Choose Cards (for Steal/Vaporize/Choice/Exchange responses)
+       ═══════════════════════════════════════════════════════ -->
+  <div class="modal-overlay" id="modal-choose-cards">
+    <div class="modal">
+      <h3 id="modal-cards-title">Choose Cards</h3>
+      <p id="modal-cards-desc">Select cards to give/delete.</p>
+      <div class="modal-cards" id="modal-cards-list"></div>
+      <div class="modal-btns">
+        <button class="btn btn-primary" id="modal-cards-confirm" onclick="confirmCardSelection()">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       MODAL: Choice Response (give 1 card OR discard 2)
+       ═══════════════════════════════════════════════════════ -->
+  <div class="modal-overlay" id="modal-choice">
+    <div class="modal">
+      <h3>You've been Choiced!</h3>
+      <p>Give 1 card to the player, or put 2 of your cards at the bottom of the deck.</p>
+      <div class="modal-btns">
+        <button class="btn btn-primary" onclick="choiceOption('give')">Give 1 Card</button>
+        <button class="btn btn-danger" onclick="choiceOption('discard')">Discard 2 Cards</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       MODAL: Disable Card Name Selection
+       ═══════════════════════════════════════════════════════ -->
+  <div class="modal-overlay" id="modal-disable">
+    <div class="modal">
+      <h3>🚫 DISABLE — Choose a Card to Ban</h3>
+      <p>This card will be banned for the rest of the game. All players holding it lose those cards.</p>
+      <div class="card-name-list" id="disable-card-list"></div>
+      <div class="modal-btns">
+        <button class="btn btn-primary" id="btn-disable-confirm" onclick="confirmDisable()">Disable</button>
+        <button class="btn btn-secondary" onclick="closeModal('modal-disable')">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Socket.IO client loaded from server -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
